@@ -2,9 +2,10 @@ import schedule
 import time
 import os
 import pendulum
-from discord import Discord
+from dotenv import load_dotenv
+from sleeper_ff_bot.discord import Discord
 from sleeper_wrapper import League, Stats, Players
-from constants import STARTING_MONTH, STARTING_YEAR, STARTING_DAY, START_DATE_STRING
+from sleeper_ff_bot.constants import STARTING_MONTH, STARTING_YEAR, STARTING_DAY, START_DATE_STRING
 
 """
 These are all of the utility functions.
@@ -285,20 +286,6 @@ These are all of the functions that create the final strings to send.
 """
 
 
-def get_welcome_string():
-    """
-    Creates and returns the welcome message
-    :return: String welcome message
-    """
-    welcome_message = "👋 Hello, I am Sleeper Bot! \n\nThe bot schedule for the {} ff season can be found here: ".format(
-        STARTING_YEAR)
-    welcome_message += "https://github.com/SwapnikKatkoori/sleeper-ff-bot#current-schedule \n\n"
-    welcome_message += "Any feature requests, contributions, or issues for the bot can be added here: " \
-                       "https://github.com/SwapnikKatkoori/sleeper-ff-bot \n\n"
-
-    return welcome_message
-
-
 def send_any_string(string_to_send):
     """
     Send any string to the bot.
@@ -404,7 +391,7 @@ def get_standings_string(league_id):
     final_message_string += "Standings \n|{0:^7}|{1:^7}|{2:^7}|{3:^7}\n".format("rank", "team", "wins", "points")
     final_message_string += "________________________________\n\n"
     try:
-        playoff_line = os.environ["NUMBER_OF_PLAYOFF_TEAMS"] - 1
+        playoff_line = os.getenv('NUMBER_OF_PLAYOFF_TEAMS') - 1
     except:
         playoff_line = 5
     for i, standing in enumerate(standings):
@@ -484,38 +471,35 @@ if __name__ == "__main__":
     """
     bot = None
 
-    bot_type = os.environ["BOT_TYPE"]
-    league_id = os.environ["LEAGUE_ID"]
+    load_dotenv()
+
+    bot_type = os.getenv('BOT_TYPE')
+    league_id = os.getenv('LEAGUE_ID')
 
     # Check if the user specified the close game num. Default is 20.
     try:
-        close_num = os.environ["CLOSE_NUM"]
+        close_num = os.getenv('CLOSE_NUM')
     except:
         close_num = 20
 
     starting_date = pendulum.datetime(STARTING_YEAR, STARTING_MONTH, STARTING_DAY)
 
-    if bot_type == "groupme":
-        bot_id = os.environ["BOT_ID"]
-        bot = GroupMe(bot_id)
-    elif bot_type == "slack":
-        webhook = os.environ["SLACK_WEBHOOK"]
-        bot = Slack(webhook)
-    elif bot_type == "discord":
-        webhook = os.environ["DISCORD_WEBHOOK"]
+    if bot_type == "discord":
+        webhook = os.getenv('DISCORD_WEBHOOK')
         bot = Discord(webhook)
 
-    bot.send(get_welcome_string)  # inital message to send
-    schedule.every().thursday.at("19:00").do(bot.send, get_matchups_string,
-                                             league_id)  # Matchups Thursday at 4:00 pm ET
+    #bot.send(get_welcome_string)  # inital message to send
+    schedule.every().thursday.at("19:00").do(bot.send, get_matchups_string,league_id)  # Matchups Thursday at 4:00 pm ET
     schedule.every().friday.at("12:00").do(bot.send, get_scores_string, league_id)  # Scores Friday at 12 pm ET
-    schedule.every().sunday.at("23:00").do(bot.send, get_close_games_string, league_id,
-                                           int(close_num))  # Close games Sunday on 7:00 pm ET
+    schedule.every().sunday.at("23:00").do(bot.send, get_close_games_string, league_id, int(close_num))  # Close games Sunday on 7:00 pm ET
     schedule.every().monday.at("12:00").do(bot.send, get_scores_string, league_id)  # Scores Monday at 12 pm ET
-    schedule.every().tuesday.at("15:00").do(bot.send, get_standings_string,
-                                            league_id)  # Standings Tuesday at 11:00 am ET
-    schedule.every().tuesday.at("15:01").do(bot.send, get_best_and_worst_string,
-                                            league_id)  # Standings Tuesday at 11:01 am ET
+    schedule.every().tuesday.at("15:00").do(bot.send, get_standings_string, league_id)  # Standings Tuesday at 11:00 am ET
+    schedule.every().tuesday.at("15:01").do(bot.send, get_best_and_worst_string,league_id)  # Standings Tuesday at 11:01 am ET
+
+    print(get_current_week())
+    print(get_scores_string(league_id))
+    print(get_standings_string(league_id))
+    print(get_matchups_string(league_id))
 
     while True:
         if starting_date <= pendulum.today():

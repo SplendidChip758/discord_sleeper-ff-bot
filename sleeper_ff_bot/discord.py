@@ -1,5 +1,5 @@
 import requests
-from bot_interface import BotInterface
+from sleeper_ff_bot.bot_interface import BotInterface
 
 
 class Discord(BotInterface):
